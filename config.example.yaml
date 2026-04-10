@@ -1,0 +1,14 @@
+editor: vim
+
+projects:
+  my_project:
+    path: /path/to/your/project
+    has_git: true
+    results_dir: results/
+    logs_dir: logs/
+
+  another_project:
+    path: /path/to/another/project
+    has_git: false
+    results_dir: null
+    logs_dir: null

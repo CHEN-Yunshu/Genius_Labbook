@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "genius-labbook"
+version = "0.1.0"
+description = "A CLI research journal for tracking experiments, code, and results across multiple projects"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [
+    {name = "Yunshu Chen"},
+]
+dependencies = [
+    "typer>=0.9.0",
+    "rich>=13.0.0",
+    "pyyaml>=6.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/CHEN-Yunshu/Genius_Labbook"
+
+[tool.setuptools.packages.find]
+include = ["labbook*"]
+
+[project.scripts]
+lab = "labbook.cli:app"
