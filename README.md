@@ -71,12 +71,55 @@ lab scan --since 24                # Look back 24 hours
 lab scan -p my_project             # One project only
 ```
 
+### Stats
+
+```bash
+lab stats                          # Dashboard: entries, tags, streaks, weekly chart
+```
+
+```
+╭──────── Labbook Stats ────────╮
+│ Total entries:  142           │
+│ This week:      8             │
+│ This month:     31            │
+│ Streak:         12 days       │
+╰───────────────────────────────╯
+┌─ Weekly Activity (last 8 weeks) ─┐
+│ 02/17 - 02/23     3  ███        │
+│ 02/24 - 03/02     7  ███████    │
+│ ...                              │
+└──────────────────────────────────┘
+```
+
 ### Report
 
 ```bash
 lab report                         # Today's daily report
-lab report --days 7                # Weekly summary
+lab report --days 7                # Multi-day summary
 ```
+
+### Weekly
+
+```bash
+lab weekly                         # Current week report
+lab weekly -w -1                   # Last week
+lab weekly -w -1 --edit            # Generate & open in editor
+```
+
+Structured for advisor meetings: per-project entries, git commits, completed todos, editable Highlights / Next Week sections.
+
+### Reproduce
+
+Capture and restore experiment environments:
+
+```bash
+lab reproduce capture my_project                    # Snapshot current env
+lab reproduce capture my_project --cmd "python train.py --lr 1e-4"  # With command
+lab reproduce show my_project                       # View latest snapshot
+lab reproduce run my_project                        # Print recreate commands
+```
+
+Captures: git SHA + branch + dirty status, Python version, conda env, pip packages, GPU info.
 
 ### Pathway
 

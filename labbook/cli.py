@@ -489,3 +489,92 @@ def scan(
 
     if save and activities:
         create_scan_entries(config, activities, auto_commit=commit)
+
+
+# ─── Stats ──────────────────────────────────────────────────────────────────
+
+
+@app.command()
+def stats():
+    """Show labbook statistics dashboard: entries, tags, streaks, weekly activity."""
+    from .stats import compute_stats, render_stats
+    config = load_config()
+    render_stats(console, compute_stats(config))
+
+
+# ─── Weekly ─────────────────────────────────────────────────────────────────
+
+
+@app.command()
+def weekly(
+    week_offset: Annotated[int, typer.Option("--week", "-w", help="Week offset (0=current, -1=last)")] = 0,
+    edit: Annotated[bool, typer.Option("--edit/--no-edit", help="Open in editor after generating")] = False,
+    commit: Annotated[bool, typer.Option("--commit/--no-commit")] = True,
+):
+    """Generate weekly report for advisor meetings."""
+    from .weekly import week_range, generate_weekly, save_weekly, show_weekly
+    config = load_config()
+    monday, sunday = week_range(week_offset)
+    show_weekly(config, monday, sunday)
+    content = generate_weekly(config, monday, sunday)
+    path = save_weekly(config, content, monday)
+    console.print(f"\n[dim]Saved: {path.relative_to(config.root)}[/dim]")
+    if edit:
+        _open_in_editor(path)
+    if commit:
+        commit_entry(config, [path], f"lab: weekly report ({monday.isoformat()})")
+
+
+# ─── Reproduce ──────────────────────────────────────────────────────────────
+
+reproduce_app = typer.Typer(name="reproduce", help="Reproducibility snapshots.", no_args_is_help=True)
+app.add_typer(reproduce_app)
+
+
+@reproduce_app.command("capture")
+def reproduce_capture(
+    project: Annotated[str, typer.Argument(help="Project short name")],
+    run_command: Annotated[Optional[str], typer.Option("--cmd", "-c", help="Run command to record")] = None,
+    commit: Annotated[bool, typer.Option("--commit/--no-commit")] = True,
+):
+    """Capture reproducibility snapshot of current environment."""
+    from .reproduce import capture_snapshot, save_snapshot, render_snapshot
+    _validate_project(project)
+    config = load_config()
+    snapshot = capture_snapshot(config, project, run_command)
+    render_snapshot(console, snapshot)
+    path = save_snapshot(config, snapshot)
+    console.print(f"[green]Saved:[/green] {path.relative_to(config.root)}")
+    if commit:
+        commit_entry(config, [path], f"lab: {project} - reproduce snapshot")
+
+
+@reproduce_app.command("show")
+def reproduce_show(
+    query: Annotated[str, typer.Argument(help="Entry filename, project name, or .reproduce.yaml path")],
+):
+    """Display reproducibility info for an entry or snapshot."""
+    from .reproduce import find_snapshot, load_snapshot, render_snapshot
+    config = load_config()
+    path = find_snapshot(config, query)
+    if not path:
+        console.print(f"[red]No reproduce snapshot found for '{query}'[/red]")
+        raise typer.Exit(1)
+    snapshot = load_snapshot(path)
+    render_snapshot(console, snapshot)
+    console.print(f"[dim]File: {path}[/dim]")
+
+
+@reproduce_app.command("run")
+def reproduce_run(
+    query: Annotated[str, typer.Argument(help="Entry filename, project name, or .reproduce.yaml path")],
+):
+    """Print commands to recreate the environment from a snapshot."""
+    from .reproduce import find_snapshot, load_snapshot, format_reproduce_commands
+    config = load_config()
+    path = find_snapshot(config, query)
+    if not path:
+        console.print(f"[red]No reproduce snapshot found for '{query}'[/red]")
+        raise typer.Exit(1)
+    snapshot = load_snapshot(path)
+    console.print(format_reproduce_commands(snapshot))
