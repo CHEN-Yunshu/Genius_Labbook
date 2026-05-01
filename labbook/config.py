@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -37,21 +38,32 @@ class LabbookConfig:
 
 
 def _find_root() -> Path:
-    """Find labbook root by walking up from CWD, then from this file."""
-    # 1. Walk up from current working directory
+    """Find labbook root: $LABBOOK_ROOT, then walk up from CWD, then from this file."""
+    # 1. Explicit override via environment variable
+    env_root = os.environ.get("LABBOOK_ROOT")
+    if env_root:
+        root = Path(env_root).expanduser().resolve()
+        if (root / "config.yaml").exists():
+            return root
+        raise FileNotFoundError(
+            f"$LABBOOK_ROOT={env_root} but no config.yaml found there."
+        )
+
+    # 2. Walk up from current working directory
     cwd = Path.cwd().resolve()
     for parent in [cwd, *cwd.parents]:
         if (parent / "config.yaml").exists():
             return parent
 
-    # 2. Walk up from package install location
+    # 3. Walk up from package install location
     candidate = Path(__file__).resolve().parent.parent
     if (candidate / "config.yaml").exists():
         return candidate
 
     raise FileNotFoundError(
         "Cannot find labbook root (no config.yaml found). "
-        "Run 'lab init' to set up a new labbook, or run from inside your labbook directory."
+        "Set $LABBOOK_ROOT, run 'lab init' to set up a new labbook, "
+        "or run from inside your labbook directory."
     )
 
 
