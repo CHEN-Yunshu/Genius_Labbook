@@ -5,6 +5,8 @@ from __future__ import annotations
 import datetime
 from pathlib import Path
 
+import yaml
+
 from .config import LabbookConfig
 from .entry import Entry
 
@@ -38,6 +40,28 @@ def load_entry(path: Path) -> Entry:
     return Entry.from_markdown(text)
 
 
+def _read_project_from_frontmatter(path: Path) -> str | None:
+    """Read just the `project` field from YAML frontmatter without loading the body.
+
+    Filename-based parsing breaks for project names containing `_` (the same
+    separator used in filenames), so we authoritatively read the frontmatter.
+    """
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    if not text.startswith("---"):
+        return None
+    end = text.find("\n---", 3)
+    if end == -1:
+        return None
+    try:
+        meta = yaml.safe_load(text[3:end])
+    except yaml.YAMLError:
+        return None
+    return meta.get("project") if isinstance(meta, dict) else None
+
+
 def list_entries(
     config: LabbookConfig,
     project: str | None = None,
@@ -56,23 +80,17 @@ def list_entries(
 
     results = []
     for p in paths:
-        name = p.stem
-        # Filter by project: filename format is YYYY-MM-DD_<project>_<slug>
-        if project:
-            parts = name.split("_", 2)
-            if len(parts) >= 2 and parts[1] != project:
-                continue
-
-        # Filter by date range
         try:
-            date_str = name[:10]  # YYYY-MM-DD
-            file_date = datetime.date.fromisoformat(date_str)
+            file_date = datetime.date.fromisoformat(p.stem[:10])
         except ValueError:
             continue
 
         if after and file_date < after:
             continue
         if before and file_date > before:
+            continue
+
+        if project and _read_project_from_frontmatter(p) != project:
             continue
 
         results.append(p)
